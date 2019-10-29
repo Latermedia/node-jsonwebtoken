@@ -238,4 +238,55 @@ describe('verify', function() {
       });
     });
   });
+
+
+  describe('options: backupKeys', function () {
+    var token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJpYXQiOjE0MzcwMTg1ODIsImV4cCI6MTQzNzAxODU5Mn0.3aR3vocmgRpG05rsI9MpR6z2T_BGtMQaPq2YR6QaroU';
+    var key = 'badkey0';
+
+    var payload = { foo: 'bar', iat: 1437018582, exp: 1437018592 };
+
+    it('should error if backupKeys not an array', function (done) {
+      var options = {algorithms: ['HS256'], ignoreExpiration: true, backupKeys: 'oops'};
+
+      jwt.verify(token, key, options, function (err) {
+        assert.equal(err.name, 'JsonWebTokenError');
+        assert.equal(err.message, 'backupKeys must be an array');
+        done();
+      });
+    })
+
+    it('should error if non-string backup key', function (done) {
+      var backups = ['badkey1', 50, 'badkey3']
+      var options = {algorithms: ['HS256'], ignoreExpiration: true, backupKeys: backups};
+
+      jwt.verify(token, key, options, function (err) {
+        assert.equal(err.name, 'JsonWebTokenError');
+        assert.equal(err.message, 'backupKeys must only contain strings');
+        done();
+      });
+    })
+
+    it('should error if no valid backup keys', function (done) {
+      var backups = ['badkey1', 'badkey2', 'badkey3']
+      var options = {algorithms: ['HS256'], ignoreExpiration: true, backupKeys: backups};
+
+      jwt.verify(token, key, options, function (err) {
+        assert.equal(err.name, 'JsonWebTokenError');
+        assert.equal(err.message, 'invalid signature');
+        done();
+      });
+    })
+
+    it('should verify a valid backup key', function (done) {
+      var backups = ['badkey1', 'badkey2', 'key']
+      var options = {algorithms: ['HS256'], ignoreExpiration: true, backupKeys: backups};
+
+      jwt.verify(token, key, options, function (err, p) {
+        assert.isNull(err);
+        assert.deepEqual(p, payload);
+        done();
+      });
+    })
+  });
 });

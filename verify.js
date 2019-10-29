@@ -121,10 +121,27 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
       return done(new JsonWebTokenError('invalid algorithm'));
     }
 
+    if (options.backupKeys) {
+      if (!Array.isArray(options.backupKeys)) {
+        return done(new JsonWebTokenError('backupKeys must be an array'));
+      }
+      options.backupKeys.forEach(function(key) {
+        if (typeof key !== 'string') {
+          return done(new JsonWebTokenError('backupKeys must only contain strings'));
+        }
+      });
+    }
+
     var valid;
 
     try {
       valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey);
+
+      if (!valid && options.backupKeys) {
+        valid = options.backupKeys.some(function(backupKey) {
+          return jws.verify(jwtString, decodedToken.header.alg, backupKey);
+        });
+      }
     } catch (e) {
       return done(e);
     }
