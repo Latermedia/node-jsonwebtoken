@@ -106,6 +106,14 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
       return done(new JsonWebTokenError('secret or public key must be provided'));
     }
 
+    if (Array.isArray(secretOrPublicKey)) {
+      secretOrPublicKey.forEach(function(key) {
+        if (typeof key !== 'string') {
+          return done(new JsonWebTokenError('secret or public key array must only contain strings'));
+        }
+      });
+    }
+
     if (!hasSignature && !options.algorithms) {
       options.algorithms = ['none'];
     }
@@ -121,26 +129,15 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
       return done(new JsonWebTokenError('invalid algorithm'));
     }
 
-    if (options.backupKeys) {
-      if (!Array.isArray(options.backupKeys)) {
-        return done(new JsonWebTokenError('backupKeys must be an array'));
-      }
-      options.backupKeys.forEach(function(key) {
-        if (typeof key !== 'string') {
-          return done(new JsonWebTokenError('backupKeys must only contain strings'));
-        }
-      });
-    }
-
     var valid;
 
     try {
-      valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey);
-
-      if (!valid && options.backupKeys) {
-        valid = options.backupKeys.some(function(backupKey) {
+      if (Array.isArray(secretOrPublicKey)) {
+        valid = secretOrPublicKey.some(function(backupKey) {
           return jws.verify(jwtString, decodedToken.header.alg, backupKey);
         });
+      } else {
+        valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey);
       }
     } catch (e) {
       return done(e);
