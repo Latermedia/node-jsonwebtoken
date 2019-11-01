@@ -107,6 +107,10 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
     }
 
     if (Array.isArray(secretOrPublicKey)) {
+      if (hasSignature && !secretOrPublicKey.length){
+        return done(new JsonWebTokenError('secret or public key array cannot be empty'));
+      }
+
       secretOrPublicKey.forEach(function(key) {
         if (typeof key !== 'string') {
           return done(new JsonWebTokenError('secret or public key array must only contain strings'));
@@ -122,7 +126,6 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
       options.algorithms = ~secretOrPublicKey.toString().indexOf('BEGIN CERTIFICATE') ||
         ~secretOrPublicKey.toString().indexOf('BEGIN PUBLIC KEY') ? PUB_KEY_ALGS :
         ~secretOrPublicKey.toString().indexOf('BEGIN RSA PUBLIC KEY') ? RSA_KEY_ALGS : HS_ALGS;
-
     }
 
     if (!~options.algorithms.indexOf(decodedToken.header.alg)) {
