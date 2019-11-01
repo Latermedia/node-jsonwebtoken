@@ -255,6 +255,16 @@ describe('verify', function() {
       });
     })
 
+    it('should error if secretOrPublicKey array contains no keys', function (done) {
+      var keys = []
+
+      jwt.verify(token, keys, options, function (err) {
+        assert.equal(err.name, 'JsonWebTokenError');
+        assert.equal(err.message, 'secret or public key array cannot be empty');
+        done();
+      });
+    })
+
     it('should error if secretOrPublicKey array contains no valid keys', function (done) {
       var keys = ['badkey1', 'badkey2', 'badkey3']
 
