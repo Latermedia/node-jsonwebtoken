@@ -16,7 +16,7 @@ describe('verify with secretOrPublicKey array', function() {
   var ecdsa_pub_key = loadKey('ecdsa-public.pem');
   var rsa_priv_key = loadKey('rsa-private.pem');
   var rsa_pub_key = loadKey('rsa-public-key.pem');
-  var hmac_secret = 'key'
+  var hmac_secret = 'key';
 
   var ecdsa_signed = jws.sign({
     header: { alg: 'ES256' },
@@ -47,7 +47,7 @@ describe('verify with secretOrPublicKey array', function() {
         assert.deepEqual(p, payload);
         done();
       });
-    })
+    });
 
     it('should work with rsa', function(done) {
       jwt.verify(rsa_signed, keys, options, function (err, p) {
@@ -55,7 +55,7 @@ describe('verify with secretOrPublicKey array', function() {
         assert.deepEqual(p, payload);
         done();
       });
-    })
+    });
 
     it('should work with hmac', function(done) {
       jwt.verify(hmac_signed, keys, options, function (err, p) {
@@ -63,7 +63,37 @@ describe('verify with secretOrPublicKey array', function() {
         assert.deepEqual(p, payload);
         done();
       });
-    })
+    });
+
+    describe('with invalid keys', function() {
+      beforeEach(function () {
+        keys = [loadKey('ecdsa-public-invalid.pem'), loadKey('rsa-public-invalid.pem'), 'badhskey']
+      });
+
+      it('should fail with ecdsa', function(done) {
+        jwt.verify(ecdsa_signed, keys, options, function (err) {
+          assert.equal(err.name, 'JsonWebTokenError');
+          assert.equal(err.message, 'invalid signature');
+          done();
+        });
+      });
+
+      it('should fail with rsa', function(done) {
+        jwt.verify(rsa_signed, keys, options, function (err) {
+          assert.equal(err.name, 'JsonWebTokenError');
+          assert.equal(err.message, 'invalid signature');
+          done();
+        });
+      });
+
+      it('should fail with hmac', function(done) {
+        jwt.verify(hmac_signed, keys, options, function (err) {
+          assert.equal(err.name, 'JsonWebTokenError');
+          assert.equal(err.message, 'invalid signature');
+          done();
+        });
+      });
+    });
 
     it('should error if token algorithm not included in options.algorithms', function(done) {
       options = {algorithms: ['ES256'], ignoreExpiration: true}
@@ -73,7 +103,7 @@ describe('verify with secretOrPublicKey array', function() {
         assert.equal(err.message, 'invalid algorithm');
         done();
       });
-    })
+    });
 
     describe('should error if token algorithm not supported by any key defaults', function() {
       it('hmac token with rsa and ecdsa keys', function(done) {
