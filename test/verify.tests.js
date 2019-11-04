@@ -239,18 +239,33 @@ describe('verify', function() {
     });
   });
 
-
-  describe('secretOrPublicKey', function () {
+  describe('secretOrPublicKey array', function () {
     var token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJpYXQiOjE0MzcwMTg1ODIsImV4cCI6MTQzNzAxODU5Mn0.3aR3vocmgRpG05rsI9MpR6z2T_BGtMQaPq2YR6QaroU';
     var payload = { foo: 'bar', iat: 1437018582, exp: 1437018592 };
     var options = {algorithms: ['HS256'], ignoreExpiration: true};
 
-    it('should error if secretOrPublicKey array contains non-string value', function (done) {
+    it('should error if secretOrPublicKey array given with unsigned token', function (done) {
+      var unsigned = jws.sign({
+        header: { alg: 'none' },
+        payload: payload,
+        secret: priv,
+        encoding: 'utf8'
+      });
+      var keys = []
+
+      jwt.verify(unsigned, keys, options, function (err) {
+        assert.equal(err.name, 'JsonWebTokenError');
+        assert.equal(err.message, 'jwt signature is required');
+        done();
+      });
+    })
+
+    it('should error if secretOrPublicKey array contains non-string & non-buffer value', function (done) {
       var keys = ['key', 50]
 
       jwt.verify(token, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
-        assert.equal(err.message, 'secret or public key array must only contain strings');
+        assert.equal(err.message, 'secret or public key array must only contain strings or buffers');
         done();
       });
     })

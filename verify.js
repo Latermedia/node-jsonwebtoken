@@ -15,6 +15,12 @@ if (PS_SUPPORTED) {
   RSA_KEY_ALGS.splice(3, 0, 'PS256', 'PS384', 'PS512');
 }
 
+function getDefaultSupportedAlgorithms(secretOrPublicKey) {
+  return ~secretOrPublicKey.toString().indexOf('BEGIN CERTIFICATE') ||
+    ~secretOrPublicKey.toString().indexOf('BEGIN PUBLIC KEY') ? PUB_KEY_ALGS :
+    ~secretOrPublicKey.toString().indexOf('BEGIN RSA PUBLIC KEY') ? RSA_KEY_ALGS : HS_ALGS;
+}
+
 module.exports = function (jwtString, secretOrPublicKey, options, callback) {
   if ((typeof options === 'function') && !callback) {
     callback = options;
@@ -112,8 +118,8 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
       }
 
       secretOrPublicKey.forEach(function(key) {
-        if (typeof key !== 'string') {
-          return done(new JsonWebTokenError('secret or public key array must only contain strings'));
+        if (typeof key !== 'string' && !Buffer.isBuffer(key)) {
+          return done(new JsonWebTokenError('secret or public key array must only contain strings or buffers'));
         }
       });
     }
@@ -122,25 +128,42 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
       options.algorithms = ['none'];
     }
 
-    if (!options.algorithms) {
-      options.algorithms = ~secretOrPublicKey.toString().indexOf('BEGIN CERTIFICATE') ||
-        ~secretOrPublicKey.toString().indexOf('BEGIN PUBLIC KEY') ? PUB_KEY_ALGS :
-        ~secretOrPublicKey.toString().indexOf('BEGIN RSA PUBLIC KEY') ? RSA_KEY_ALGS : HS_ALGS;
-    }
+    if (!Array.isArray(secretOrPublicKey)) {
+      if (!options.algorithms) {
+        options.algorithms = getDefaultSupportedAlgorithms(secretOrPublicKey);
+      }
 
-    if (!~options.algorithms.indexOf(decodedToken.header.alg)) {
-      return done(new JsonWebTokenError('invalid algorithm'));
+      if (!~options.algorithms.indexOf(decodedToken.header.alg)) {
+        return done(new JsonWebTokenError('invalid algorithm'));
+      }
+    } else {
+      // don't set options.algorithms as want to determine for each key if not given.
+      if (options.algorithms && !~options.algorithms.indexOf(decodedToken.header.alg)) {
+        return done(new JsonWebTokenError('invalid algorithm'));
+      }
+
+      if (!options.algorithms) {
+        var isAlgorithmAllowedByAny = secretOrPublicKey.some(function(key) {
+          return ~getDefaultSupportedAlgorithms(key).indexOf(decodedToken.header.alg)
+        });
+
+        if (!isAlgorithmAllowedByAny) {
+          return done(new JsonWebTokenError('invalid algorithm for every key in public or secret key array'));
+        }
+      }
     }
 
     var valid;
 
     try {
-      if (Array.isArray(secretOrPublicKey)) {
-        valid = secretOrPublicKey.some(function(backupKey) {
-          return jws.verify(jwtString, decodedToken.header.alg, backupKey);
-        });
-      } else {
+      if (!Array.isArray(secretOrPublicKey)) {
         valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey);
+      } else {
+        valid = secretOrPublicKey.some(function(key) {
+          var supportedAlgorithms = options.algorithms || getDefaultSupportedAlgorithms(key);
+          return ~supportedAlgorithms.indexOf(decodedToken.header.alg) &&
+            jws.verify(jwtString, decodedToken.header.alg, key);
+        });
       }
     } catch (e) {
       return done(e);
