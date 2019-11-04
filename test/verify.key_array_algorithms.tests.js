@@ -18,6 +18,9 @@ describe('verify with secretOrPublicKey array', function() {
   var rsa_pub_key = loadKey('rsa-public-key.pem');
   var hmac_secret = 'key';
 
+  var ecdsa_pub_key_invalid = loadKey('ecdsa-public-invalid.pem');
+  var rsa_pub_key_invalid = loadKey('rsa-public-invalid.pem');
+
   var ecdsa_signed = jws.sign({
     header: { alg: 'ES256' },
     payload: payload,
@@ -67,7 +70,7 @@ describe('verify with secretOrPublicKey array', function() {
 
     describe('with invalid keys', function() {
       beforeEach(function () {
-        keys = [loadKey('ecdsa-public-invalid.pem'), loadKey('rsa-public-invalid.pem'), 'badhskey']
+        keys = [ecdsa_pub_key_invalid, rsa_pub_key_invalid, 'badhskey'];
       });
 
       it('should fail with ecdsa', function(done) {
