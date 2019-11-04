@@ -251,53 +251,53 @@ describe('verify', function() {
         secret: priv,
         encoding: 'utf8'
       });
-      var keys = []
+      var keys = [];
 
       jwt.verify(unsigned, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
         assert.equal(err.message, 'jwt signature is required');
         done();
       });
-    })
+    });
 
     it('should error if secretOrPublicKey array contains non-string & non-buffer value', function (done) {
-      var keys = ['key', 50]
+      var keys = ['key', 50];
 
       jwt.verify(token, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
         assert.equal(err.message, 'secret or public key array must only contain strings or buffers');
         done();
       });
-    })
+    });
 
     it('should error if secretOrPublicKey array contains no keys', function (done) {
-      var keys = []
+      var keys = [];
 
       jwt.verify(token, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
         assert.equal(err.message, 'secret or public key array cannot be empty');
         done();
       });
-    })
+    });
 
     it('should error if secretOrPublicKey array contains no valid keys', function (done) {
-      var keys = ['badkey1', 'badkey2', 'badkey3']
+      var keys = ['badkey1', 'badkey2', 'badkey3'];
 
       jwt.verify(token, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
         assert.equal(err.message, 'invalid signature');
         done();
       });
-    })
+    });
 
     it('should verify a valid key in secretOrPublicKey array', function (done) {
-      var keys = ['badkey1', 'badkey2', 'key']
+      var keys = ['badkey1', 'badkey2', 'key'];
 
       jwt.verify(token, keys, options, function (err, p) {
         assert.isNull(err);
         assert.deepEqual(p, payload);
         done();
       });
-    })
+    });
   });
 });

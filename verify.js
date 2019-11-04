@@ -144,7 +144,7 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
 
       if (!options.algorithms) {
         var isAlgorithmAllowedByAny = secretOrPublicKey.some(function(key) {
-          return ~getDefaultSupportedAlgorithms(key).indexOf(decodedToken.header.alg)
+          return ~getDefaultSupportedAlgorithms(key).indexOf(decodedToken.header.alg);
         });
 
         if (!isAlgorithmAllowedByAny) {
