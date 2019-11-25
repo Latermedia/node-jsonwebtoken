@@ -103,7 +103,7 @@ describe('verify with secretOrPublicKey array', function() {
 
       jwt.verify(hmac_signed, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
-        assert.equal(err.message, 'invalid algorithm');
+        assert.equal(err.message, 'invalid algorithm for every given key or algorithm option');
         done();
       });
     });
@@ -114,7 +114,7 @@ describe('verify with secretOrPublicKey array', function() {
 
         jwt.verify(hmac_signed, keys, options, function (err) {
           assert.equal(err.name, 'JsonWebTokenError');
-          assert.equal(err.message, 'invalid algorithm for every key in public or secret key array');
+          assert.equal(err.message, 'invalid algorithm for every given key or algorithm option');
           done();
         });
       });
@@ -124,7 +124,7 @@ describe('verify with secretOrPublicKey array', function() {
 
         jwt.verify(ecdsa_signed, keys, options, function (err) {
           assert.equal(err.name, 'JsonWebTokenError');
-          assert.equal(err.message, 'invalid algorithm for every key in public or secret key array');
+          assert.equal(err.message, 'invalid algorithm for every given key or algorithm option');
           done();
         });
       });
@@ -134,7 +134,7 @@ describe('verify with secretOrPublicKey array', function() {
 
         jwt.verify(rsa_signed, keys, options, function (err) {
           assert.equal(err.name, 'JsonWebTokenError');
-          assert.equal(err.message, 'invalid algorithm for every key in public or secret key array');
+          assert.equal(err.message, 'invalid algorithm for every given key or algorithm option');
           done();
         });
       });

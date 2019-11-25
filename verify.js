@@ -31,9 +31,6 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
     options = {};
   }
 
-  //clone this object since we are going to mutate it.
-  options = Object.assign({}, options);
-
   var done;
 
   if (callback) {
@@ -103,68 +100,56 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
     }
 
     var hasSignature = parts[2].trim() !== '';
+    var secretOrPublicKeys = Array.isArray(secretOrPublicKey) ? secretOrPublicKey : [secretOrPublicKey];
+    secretOrPublicKeys = secretOrPublicKeys.filter(Boolean);
 
-    if (!hasSignature && secretOrPublicKey){
+    if (!hasSignature && secretOrPublicKeys.length){
       return done(new JsonWebTokenError('jwt signature is required'));
     }
 
-    if (hasSignature && !secretOrPublicKey) {
+    if (hasSignature && !secretOrPublicKeys.length) {
       return done(new JsonWebTokenError('secret or public key must be provided'));
     }
 
-    if (Array.isArray(secretOrPublicKey)) {
-      if (hasSignature && !secretOrPublicKey.length){
-        return done(new JsonWebTokenError('secret or public key array cannot be empty'));
+    secretOrPublicKeys.forEach(function(key) {
+      if (typeof key !== 'string' && !Buffer.isBuffer(key)) {
+        return done(new JsonWebTokenError('secret or public keys must resolve to strings or buffers'));
       }
+    });
 
-      secretOrPublicKey.forEach(function(key) {
-        if (typeof key !== 'string' && !Buffer.isBuffer(key)) {
-          return done(new JsonWebTokenError('secret or public key array must only contain strings or buffers'));
-        }
+    var supportedAlgorithms;
+    var determineAlgsFromKeys = false;
+    if (!hasSignature && !options.algorithms) {
+      supportedAlgorithms = ['none']
+    }
+
+    if (options.algorithms) {
+      supportedAlgorithms = options.algorithms
+    }
+
+    if (!supportedAlgorithms) {
+      determineAlgsFromKeys = true;
+      supportedAlgorithms = [];
+      secretOrPublicKeys.forEach(function(key) {
+        supportedAlgorithms = supportedAlgorithms.concat(getDefaultSupportedAlgorithms(key));
       });
     }
 
-    if (!hasSignature && !options.algorithms) {
-      options.algorithms = ['none'];
-    }
-
-    if (!Array.isArray(secretOrPublicKey)) {
-      if (!options.algorithms) {
-        options.algorithms = getDefaultSupportedAlgorithms(secretOrPublicKey);
-      }
-
-      if (!~options.algorithms.indexOf(decodedToken.header.alg)) {
-        return done(new JsonWebTokenError('invalid algorithm'));
-      }
-    } else {
-      // don't set options.algorithms as want to determine for each key if not given.
-      if (options.algorithms && !~options.algorithms.indexOf(decodedToken.header.alg)) {
-        return done(new JsonWebTokenError('invalid algorithm'));
-      }
-
-      if (!options.algorithms) {
-        var isAlgorithmAllowedByAny = secretOrPublicKey.some(function(key) {
-          return ~getDefaultSupportedAlgorithms(key).indexOf(decodedToken.header.alg);
-        });
-
-        if (!isAlgorithmAllowedByAny) {
-          return done(new JsonWebTokenError('invalid algorithm for every key in public or secret key array'));
-        }
-      }
+    if (!~supportedAlgorithms.indexOf(decodedToken.header.alg)) {
+      return done(new JsonWebTokenError('invalid algorithm for every given key or algorithm option'));
     }
 
     var valid;
-
     try {
-      if (!Array.isArray(secretOrPublicKey)) {
-        valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey);
-      } else {
-        valid = secretOrPublicKey.some(function(key) {
-          var supportedAlgorithms = options.algorithms || getDefaultSupportedAlgorithms(key);
-          return ~supportedAlgorithms.indexOf(decodedToken.header.alg) &&
-            jws.verify(jwtString, decodedToken.header.alg, key);
-        });
+      if (supportedAlgorithms[0] === 'none') {
+        secretOrPublicKeys.push('')
       }
+      valid = secretOrPublicKeys.some(function(key) {
+        // only attempt to verify if the specific key's default algorithms include token alg
+        var keyAlgorithms = determineAlgsFromKeys ? getDefaultSupportedAlgorithms(key) : supportedAlgorithms;
+        return ~keyAlgorithms.indexOf(decodedToken.header.alg) &&
+          jws.verify(jwtString, decodedToken.header.alg, key);
+      });
     } catch (e) {
       return done(e);
     }
