@@ -243,14 +243,14 @@ describe('verify', function() {
     var token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJpYXQiOjE0MzcwMTg1ODIsImV4cCI6MTQzNzAxODU5Mn0.3aR3vocmgRpG05rsI9MpR6z2T_BGtMQaPq2YR6QaroU';
     var payload = { foo: 'bar', iat: 1437018582, exp: 1437018592 };
     var options = {algorithms: ['HS256'], ignoreExpiration: true};
+    var unsigned = jws.sign({
+      header: { alg: 'none' },
+      payload: payload,
+      secret: priv,
+      encoding: 'utf8'
+    });
 
     it('should be able to validate unsigned token with empty secretOrPublicKey array', function (done) {
-      var unsigned = jws.sign({
-        header: { alg: 'none' },
-        payload: payload,
-        secret: priv,
-        encoding: 'utf8'
-      });
       var keys = [];
 
       jwt.verify(unsigned, keys, {ignoreExpiration: true}, function (err, p) {
@@ -260,13 +260,17 @@ describe('verify', function() {
       });
     });
 
-    it('should error if unsigned token given with non-empty secretOrPublicKey array', function (done) {
-      var unsigned = jws.sign({
-        header: { alg: 'none' },
-        payload: payload,
-        secret: priv,
-        encoding: 'utf8'
+    it('should be able to validate unsigned token with falsey secretOrPublicKey array values', function (done) {
+      var keys = [false, null, undefined, NaN, ""];
+
+      jwt.verify(unsigned, keys, {ignoreExpiration: true}, function (err, p) {
+        assert.isNull(err);
+        assert.deepEqual(p, payload);
+        done();
       });
+    });
+
+    it('should error if unsigned token given with non-empty secretOrPublicKey array', function (done) {
       var keys = ['key'];
 
       jwt.verify(unsigned, keys, options, function (err) {
