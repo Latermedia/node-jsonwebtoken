@@ -244,7 +244,7 @@ describe('verify', function() {
     var payload = { foo: 'bar', iat: 1437018582, exp: 1437018592 };
     var options = {algorithms: ['HS256'], ignoreExpiration: true};
 
-    it('should error if secretOrPublicKey array given with unsigned token', function (done) {
+    it('should be able to validate unsigned token with empty secretOrPublicKey array', function (done) {
       var unsigned = jws.sign({
         header: { alg: 'none' },
         payload: payload,
@@ -252,6 +252,22 @@ describe('verify', function() {
         encoding: 'utf8'
       });
       var keys = [];
+
+      jwt.verify(unsigned, keys, {ignoreExpiration: true}, function (err, p) {
+        assert.isNull(err);
+        assert.deepEqual(p, payload);
+        done();
+      });
+    });
+
+    it('should error if unsigned token given with non-empty secretOrPublicKey array', function (done) {
+      var unsigned = jws.sign({
+        header: { alg: 'none' },
+        payload: payload,
+        secret: priv,
+        encoding: 'utf8'
+      });
+      var keys = ['key'];
 
       jwt.verify(unsigned, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
@@ -265,7 +281,7 @@ describe('verify', function() {
 
       jwt.verify(token, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
-        assert.equal(err.message, 'secret or public key array must only contain strings or buffers');
+        assert.equal(err.message, 'secret or public keys must resolve to strings or buffers');
         done();
       });
     });
@@ -275,7 +291,7 @@ describe('verify', function() {
 
       jwt.verify(token, keys, options, function (err) {
         assert.equal(err.name, 'JsonWebTokenError');
-        assert.equal(err.message, 'secret or public key array cannot be empty');
+        assert.equal(err.message, 'secret or public key must be provided');
         done();
       });
     });
