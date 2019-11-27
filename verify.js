@@ -119,12 +119,12 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
 
     var supportedAlgorithms;
     var determineAlgsFromKeys = false;
-    if (!hasSignature && !options.algorithms) {
-      supportedAlgorithms = ['none']
-    }
-
     if (options.algorithms) {
       supportedAlgorithms = options.algorithms
+    }
+
+    if (!hasSignature && !supportedAlgorithms) {
+      supportedAlgorithms = ['none']
     }
 
     if (!supportedAlgorithms) {
@@ -141,6 +141,8 @@ module.exports = function (jwtString, secretOrPublicKey, options, callback) {
 
     var valid;
     try {
+      // previously filtered out falsey values from keys
+      // if unsigned, re-add an empty string key so that jws.verify runs
       if (supportedAlgorithms[0] === 'none') {
         secretOrPublicKeys.push('')
       }
